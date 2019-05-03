@@ -21,39 +21,41 @@ const User = connection.define('User', {
         primaryKey: true,
         defaultValue: Sequelize.UUIDV4
     },
-    name: {
-        type: Sequelize.STRING,
-        validate : {
-            len: [3]
-        }
-    },
-    bio: {
-        type: Sequelize.TEXT,
-        validate: {
-            contains: {
-                args: ['foo'],
-                msg: 'Error: Field ust contain foo'
-            }
-        }
-    }
+    first: Sequelize.STRING,
+    last: Sequelize.STRING,
+    full_name: Sequelize.STRING,
+    bio: Sequelize.TEXT
     }, {
-        timestamps: false
+        hooks: {
+            beforeValidate: () => {
+                console.log('before validate');
+            },
+            afterValidate: () => {
+                console.log('after validate');
+            },
+            beforeCreate: (user) => {
+                user.full_name = `${user.first} ${user.last}`
+            },
+            afterCreate: () => {
+                console.log('after create');
+            }
+        } 
     });
 
 
-    app.get('/', (req, res) => {
-        User.create({
-            name: 'christian',
-            bio: 'first bio entry'
-        })
-        .then(user => {
-            res.json(user);
-        })
-        .catch(error => {
-            console.log(error);
-            res.status(404).send(error);
-        })
-    })
+    // app.get('/', (req, res) => {
+    //     User.create({
+    //         name: 'christian',
+    //         bio: 'first bio entry'
+    //     })
+    //     .then(user => {
+    //         res.json(user);
+    //     })
+    //     .catch(error => {
+    //         console.log(error);
+    //         res.status(404).send(error);
+    //     })
+    // })
 
 connection
     .sync({
@@ -61,10 +63,11 @@ connection
         force: true
     })
     .then(()=>{
-        // User.create({
-        //     name: 'christian',
-        //     bio: 'first bio entry'
-        // })
+        User.create({
+            first: 'christian',
+            last: 'bartley',
+            bio: 'first bio entry'
+        })
     })
     .then(()=> {
         console.log('Connection to database established successfully');
