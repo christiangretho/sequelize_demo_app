@@ -33,7 +33,7 @@ const User = connection.define("User", {
   }
 });
 
-app.get("/findall", (req, res) => {
+app.get("/findallwhere", (req, res) => {
   User.findAll({
       where: {
           name: {
@@ -49,6 +49,56 @@ app.get("/findall", (req, res) => {
       res.status(404).send(error);
     });
 });
+
+app.get("/findall", (req, res) => {
+    User.findAll()
+      .then(user => {
+        res.json(user);
+      })
+      .catch(error => {
+        console.log(error);
+        res.status(404).send(error);
+      });
+  });
+
+  app.get("/findbyid", (req, res) => {
+    User.findByPk('55')
+      .then(user => {
+        res.json(user);
+      })
+      .catch(error => {
+        console.log(error);
+        res.status(404).send(error);
+      });
+  });
+
+  app.put("/update", (req, res) => {
+    User.update({
+        name: 'Michael keaton',
+        password: 'password'
+    }, {where: {id: 55}})
+      .then(rows => {
+        res.json(rows);
+      })
+      .catch(error => {
+        console.log(error);
+        res.status(404).send(error);
+      });
+  });
+
+  app.delete("/remove", (req, res) => {
+    User.destroy({
+        where: {id: 50}
+    })
+      .then(user => {
+        res.send('User successfully deleted');
+      })
+      .catch(error => {
+        console.log(error);
+        res.status(404).send(error);
+      });
+  });
+  
 
 // app.post('/post', (req, res) => {
 //     const newUser = req.body.user;
@@ -73,15 +123,15 @@ connection
   .sync({
     // logging: console.log
   })
-  // .then(()=>{
-  //     User.bulkCreate(_USERS)
-  //     .then(users => {
-  //         console.log('Success adding users');
-  //     })
-  //     .catch(error => {
-  //         console.log(error);
-  //     })
-  // })
+  .then(()=>{
+      User.bulkCreate(_USERS)
+      .then(users => {
+          console.log('Success adding users');
+      })
+      .catch(error => {
+          console.log(error);
+      })
+  })
   .then(() => {
     console.log("Connection to database established successfully");
   })
