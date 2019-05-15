@@ -41,8 +41,15 @@ app.get("/findall", (req, res) => {
           }
       }
   })
-    .then(user => {
-      res.json(user);
+});
+  
+app.get("/update", (req, res) => {
+  User.update({
+          name: 'Michale Keaton',
+          password: 'password'
+  }, {where: {id: 55}})
+    .then(rows => {
+      res.json(rows);
     })
     .catch(error => {
       console.log(error);
