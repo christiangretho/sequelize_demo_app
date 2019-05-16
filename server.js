@@ -10,10 +10,7 @@ const connection = new Sequelize("db", "user", "pass", {
   host: "localhost",
   dialect: "sqlite",
   storage: "db.sqlite",
-  operatorsAliases: false,
-  define: {
-    freezeTableName: true
-  }
+  operatorsAliases: false
 });
 
 const User = connection.define("User", {
@@ -33,72 +30,81 @@ const User = connection.define("User", {
   }
 });
 
-app.get("/findallwhere", (req, res) => {
-  User.findAll({
-      where: {
-          name: {
-              [Op.like]: 'N%'
-          }
-      }
-  })
-    .then(user => {
-      res.json(user);
+const Post = connection.define('Post', {
+    title: Sequelize.STRING,
+    content: Sequelize.TEXT
+})
+
+const Comment = connection.define('Comment', {
+  the_comment: Sequelize.STRING
+})
+
+const Project = connection.define('Project', {
+  title: Sequelize.STRING
+})
+
+app.get("/allposts", (req, res) => {
+    Post.findAll({
+        include: [{
+            model: User, as: "UserRef"
+        }]
+    })
+      .then(posts => {
+        res.json(posts);
+      })
+      .catch(error => {
+        console.log(error);
+        res.status(404).send(error);
+      })
+  });
+
+  app.put("/addworker", (req, res) => {
+    Project.findByPk(2).then((project) => {
+      project.addWorkers(5);
+    })
+      .then(() => {
+        res.send('user added');
+      })
+      .catch(error => {
+        console.log(error);
+        res.status(404).send(error);
+      })
+  });
+
+  app.get("/singlepost", (req, res) => {
+    Post.findByPk('1', {
+        include: [{
+            model: Comment, as: "All_Comments",
+            attributes: ['the_comment']
+        }, {
+          model: User, as: 'UserRef'
+        }]
+    })
+      .then(posts => {
+        res.json(posts);
+      })
+      .catch(error => {
+        console.log(error);
+        res.status(404).send(error);
+      })
+  });
+
+  app.get('/getuserprojects', (req, res) => {
+    User.findAll({
+      attributes: ['name'],
+      include: [{
+        model: Project, as: 'Tasks',
+        attribute: ['title']
+      }]
+    })
+    .then(output => {
+      res.json(output)
     })
     .catch(error => {
       console.log(error);
       res.status(404).send(error);
-    });
-});
-
-app.get("/findall", (req, res) => {
-    User.findAll()
-      .then(user => {
-        res.json(user);
-      })
-      .catch(error => {
-        console.log(error);
-        res.status(404).send(error);
-      });
-  });
-
-  app.get("/findbyid", (req, res) => {
-    User.findByPk('55')
-      .then(user => {
-        res.json(user);
-      })
-      .catch(error => {
-        console.log(error);
-        res.status(404).send(error);
-      });
-  });
-
-  app.put("/update", (req, res) => {
-    User.update({
-        name: 'Michael keaton',
-        password: 'password'
-    }, {where: {id: 55}})
-      .then(rows => {
-        res.json(rows);
-      })
-      .catch(error => {
-        console.log(error);
-        res.status(404).send(error);
-      });
-  });
-
-  app.delete("/remove", (req, res) => {
-    User.destroy({
-        where: {id: 50}
     })
-      .then(user => {
-        res.send('User successfully deleted');
-      })
-      .catch(error => {
-        console.log(error);
-        res.status(404).send(error);
-      });
-  });
-  
+  })
 
 // app.post('/post', (req, res) => {
 //     const newUser = req.body.user;
@@ -119,19 +125,73 @@ app.get("/findall", (req, res) => {
 //     })
 // })
 
+Post.belongsTo(User, {as: 'UserRef', foreignKey: 'userId'});   // puts foreignKey UserId in Post table
+
+Post.hasMany(Comment, {as: 'All_Comments'}) // foreignKey = PostId in comment table
+
+// Creates a UserProjects table with IDs for ProjectId and UserId
+User.belongsToMany(Project, {as: 'Tasks', through: 'UserProjects'});
+Project.belongsToMany(User, {as: 'Workers', through: 'UserProjects'});
+
 connection
   .sync({
     // logging: console.log
+    force: true
+  })
+  .then(() => {
+    Project.create({
+      title: 'project 1'
+    }).then((project) => {
+      project.setWorkers([4, 5])
+    })
+  })
+  .then(() => {
+    Project.create({
+      title: 'project 2'
+    })
   })
   .then(()=>{
-      User.bulkCreate(_USERS)
-      .then(users => {
-          console.log('Success adding users');
-      })
-      .catch(error => {
-          console.log(error);
+    User.bulkCreate(_USERS)
+    .then(users => {
+        console.log('Success adding users');
+    })
+    .catch(error => {
+        console.log(error);
+    })
+})
+  .then(() => {
+      Post.create({
+        userId: 1,
+        title: 'First post',
+        content: 'post content 1'
       })
   })
+  .then(() => {
+    Post.create({
+      userId: 1,
+      title: 'second post',
+      content: 'post content 2'
+    })
+})
+.then(() => {
+  Post.create({
+    userId: 2,
+    title: 'third post',
+    content: 'post content 3'
+  })
+})
+.then(() => {
+  Comment.create({
+    PostId: 1,
+    the_comment: 'First comment',
+  })
+})
+.then(() => {
+  Comment.create({
+    PostId: 1,
+    the_comment: 'second comment',
+  })
+})
   .then(() => {
     console.log("Connection to database established successfully");
   })
